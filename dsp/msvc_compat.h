@@ -12,6 +12,11 @@
 #endif
 
 #define __attribute__(x)
+
+// Upstream uses std::fill(float*, float*, 0) in a few places (e.g.
+// fx_engine.h, wsola_sample_player.h); MSVC reports int -> float as C4244.
+// Benign, and eurorack/ is read-only.
+#pragma warning(disable: 4244)
 #endif
 
 #endif  // GRAUPEL_DSP_MSVC_COMPAT_H_

@@ -31,13 +31,11 @@ if(MSVC)
     # Upstream stmlib/utils/dsp.h uses __attribute__((always_inline)) without a
     # platform guard. We never edit eurorack/, so force-include our shim on the
     # DSP sources only.
-    # /wd4244: upstream wsola_sample_player.h does
-    # std::fill(&out[0], &out[kMaxNumChannels], 0) on a float range, which MSVC
-    # flags as int -> float. Benign, and the submodule is read-only.
     set_source_files_properties(${GRAUPEL_DSP_SOURCES} PROPERTIES
-        COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/dsp/msvc_compat.h;/wd4244")
+        COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/dsp/msvc_compat.h")
 endif()
 
 add_executable(render_wav test/render_wav.cpp ${GRAUPEL_DSP_SOURCES})
 target_include_directories(render_wav PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/eurorack)
