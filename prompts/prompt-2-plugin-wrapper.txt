@@ -1,0 +1,15 @@
+Same repo, read the docs again. Gate 3 passed: render_wav makes grain audio.
+Now build the JUCE plugin per HANDOFF.md §4 and §5: the exact juce_add_plugin
+block, IS_SYNTH FALSE, NEEDS_MIDI_INPUT FALSE, FORMATS VST3 Standalone,
+JUCE_VST3_CAN_REPLACE_VST2=0, 2-in/2-out.
+
+The shim: JUCE parameters -> clouds::Parameters per block, 32-sample blocks in the
+32 kHz domain, our own polyphase host->32 kHz with 44.1 kHz as a first-class case
+(ADR 0012), HQ = host rate and no companding but the SAME duration (ADR 0004),
+snapshot/restore so the Recording Buffer survives every Mode change including the
+spectral reallocation (ADR 0005), soft clip in the capture path in both Fidelity
+modes at the meter's top threshold (ADR 0013).
+Keep trigger/gate in Parameters unused (ADR 0002).
+
+Gate: it loads in a DAW and in the Standalone build, freezes survive a
+Grain->Spectral->Grain round trip, and render_wav still builds and passes.

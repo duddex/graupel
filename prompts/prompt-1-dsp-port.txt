@@ -1,0 +1,38 @@
+Read GLOSSARY.md, HANDOFF.md and docs/adr/0001..0013 in this repo before writing
+anything. They are the decisions; you are executing them, not reviewing them.
+
+Do exactly this, in this order, and stop at each gate for my confirmation:
+
+1. Add pichenettes/eurorack as a git submodule at eurorack/, pinned to
+   f4cfa7697095a28d292bff758beb51deb49b5a86, initialised recursively.
+   Gate: `git -C eurorack status --porcelain` is empty and eurorack/stmlib/ has files.
+
+2. CMake skeleton, no JUCE anywhere yet: compile the DSP file list in HANDOFF.md §3
+   with the define TEST set on those sources only, include root eurorack/, C++20,
+   MSVC on Windows. Cross-check the file list against eurorack/clouds/test/makefile
+   rather than trusting it blindly; if they disagree, the makefile wins and you say so.
+   Gate: those files compile clean.
+
+3. test/render_wav.cpp: start from eurorack/clouds/test/clouds_test.cc (it already has
+   the WAV writer and the 32 kHz / 32-sample-block loop), read an input WAV, drive
+   clouds::Parameters from a small script or CLI flags, set PLAYBACK_MODE_GRANULAR,
+   write an output WAV. No JUCE, no plugin target.
+   Gate: I can listen to a WAV with audible grains in it.
+
+Rules that are not negotiable:
+- Never edit a file under eurorack/. All adaptation goes in dsp/ or src/.
+- dsp/ must never include a JUCE header. That absence is the architecture (ADR 0008).
+- PLUGIN_MANUFACTURER_CODE Ddex and PLUGIN_CODE Grpl are immutable; do not
+  regenerate, "fix", or reuse them (ADR 0006).
+- No features that are not in the docs: no CV, no MIDI, no transport or tempo sync,
+  no sample/file loading into the buffer, no voices control, no duration control,
+  no memory slots (ADRs 0002, 0003, 0004, 0009). If something seems missing, that was
+  decided on purpose -- ask me instead of adding it.
+- Do not use GoogleTest: TEST is already a macro we rely on. Plain asserts.
+- If you hit a real decision the docs don't answer, stop and write it as a one-paragraph
+  draft ADR in docs/adr/NNNN-*.md and wait. Do not silently pick.
+- Commit after each gate with the gate named in the message.
+
+If reference/ exists (renders captured from the hardware), use it to check output;
+if it does not exist, do not claim the port is "correct", only that the upstream
+paths are unchanged.
