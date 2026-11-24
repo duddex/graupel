@@ -1,7 +1,7 @@
 #ifndef GRAUPEL_DSP_GRAUPEL_ENGINE_H_
 #define GRAUPEL_DSP_GRAUPEL_ENGINE_H_
 
-// The seam between the plugin and the ported Clouds DSP (HANDOFF.md section 5).
+// The seam between the plugin and the ported Clouds DSP (ADR 0008).
 //
 // Everything here is JUCE-free on purpose (ADR 0008): the same translation
 // unit is linked into the plugin, render_wav and GraupelDspTests.  The upstream
@@ -46,7 +46,7 @@ struct Parameters {
   Fidelity fidelity = Fidelity::kAuthentic;
 
   // Parameters the DSP owns as meta-parameters but which the shim still fills
-  // honestly (HANDOFF.md section 5).  The mode-specific granular/spectral
+  // honestly (ADR 0002/0010). The mode-specific granular/spectral
   // values are overwritten by the upstream processor from density/texture/
   // size in the modes that use them; use_deterministic_seed is the one that
   // is a real input to the grain scheduler.
@@ -86,8 +86,8 @@ class Engine {
   // only unless Frozen; this is the "new instance" reset.
   void Reset();
 
-  // Stereo in/out.  May be called with any block size; internally the DSP is
-  // always driven in 32-sample blocks (HANDOFF.md section 5).
+  // Stereo in/out. May be called with any block size; internally the DSP is
+  // always driven in 32-sample blocks in the Authentic domain (ADR 0012).
   void Process(const float* input_left, const float* input_right,
                float* output_left, float* output_right, int num_frames,
                const Parameters& parameters);

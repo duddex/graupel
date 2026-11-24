@@ -13,7 +13,7 @@ FetchContent_Declare(JUCE
     GIT_SHALLOW    ON)
 FetchContent_MakeAvailable(JUCE)
 
-# The ported Clouds DSP, exactly the list in HANDOFF.md §3. Upstream's
+# The ported Clouds DSP, exactly the list documented by ADR 0008. Upstream's
 # clouds/test/makefile agrees, and additionally names clouds_test.cc (its own
 # test main), which we do not compile here.
 set(GRAUPEL_DSP_SOURCES

@@ -48,8 +48,8 @@ jobs:
           New-Item -ItemType Directory -Force $stage | Out-Null
           Copy-Item build\Graupel_artefacts\Release\VST3\Graupel.vst3 $stage -Recurse
           Copy-Item build\Graupel_artefacts\Release\Standalone\Graupel.exe $stage
-          Copy-Item README.md, LICENSE, NOTICE, GLOSSARY.md $stage
-          Copy-Item licenses, docs $stage -Recurse
+          Copy-Item README.md, LICENSE, NOTICE $stage
+          Copy-Item licenses $stage -Recurse
           Compress-Archive -Path "$stage\*" -DestinationPath "$name.zip" -Force
 
       - name: Upload package

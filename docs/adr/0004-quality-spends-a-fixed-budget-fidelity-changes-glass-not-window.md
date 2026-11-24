@@ -14,7 +14,7 @@ one is lying.
 ## Consequences
 
 - Mono is a Quality dimension (double reach, one channel), which is a different
-  thing from Summed Input — see the glossary; conflating them is the easiest
+  thing from Summed Input; conflating them is the easiest
   mistake available in this design.
 - The four rows are labelled by what they buy — `1 s stereo`, `2 s mono`,
   `4 s stereo`, `8 s mono` — so the control can never be read as a hi-fi dial

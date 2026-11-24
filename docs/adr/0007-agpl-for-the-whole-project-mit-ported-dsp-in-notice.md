@@ -21,8 +21,8 @@ the one-way compatibility statement — with its licence text in `licenses/`.
 
 ## Consequences
 
-- Binaries convey source. `docs/`, `GLOSSARY.md` and these ADRs ship inside the
-  package, which is also how a user finds out the sound is not ours.
+- Binaries convey source. The package carries `README.md`, `NOTICE`, and the
+  license files; the ADRs remain in the source repository for contributors.
 - The README carries the trademark line: this is an unofficial project,
   "Mutable Instruments" is its owner's trademark, nothing is affiliated or
   endorsed, and the product is not named after their module.
