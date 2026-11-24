@@ -113,8 +113,8 @@ Design decisions are recorded in [`docs/adr/`](docs/adr/).
 
 ## Releases
 
-GitHub Actions builds, tests and validates every push on Windows, and uploads a
-zip of the VST3, the standalone app and the licence files as a build artifact.
+GitHub Actions builds, tests and validates every push on Windows. Pushing a `v*` tag creates a
+release with a zip of the VST3, the standalone app and the licence files.
 
 ## Licence
 
