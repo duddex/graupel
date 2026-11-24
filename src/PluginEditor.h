@@ -107,7 +107,7 @@ class GraupelAudioProcessorEditor final : public juce::AudioProcessorEditor,
   juce::TooltipWindow tooltip_window_{this, 700};
 
   juce::OwnedArray<graupel_ui::Knob> knobs_;
-  juce::Array<graupel_ui::Knob*> core_knobs_, blend_knobs_, io_knobs_, granular_knobs_, spectral_knobs_;
+  juce::Array<graupel_ui::Knob*> core_knobs_, blend_knobs_, io_knobs_;
 
   juce::OwnedArray<juce::TextButton> mode_buttons_;
   std::unique_ptr<juce::ParameterAttachment> mode_attachment_;
@@ -126,9 +126,8 @@ class GraupelAudioProcessorEditor final : public juce::AudioProcessorEditor,
   enum class BufferStatus { Unknown, Empty, Capturing, Frozen };
   BufferStatus status_ = BufferStatus::Unknown;
 
-  juce::Rectangle<int> header_, mode_bar_, footer_, status_area_, extras_message_area_;
-  Panel core_panel_{"TEXTURE"}, blend_panel_{"BLEND"}, io_panel_{"TUNE / INPUT"},
-      extras_panel_{"MODE EXTRAS"};
+  juce::Rectangle<int> header_, mode_bar_, footer_, status_area_;
+  Panel core_panel_{"TEXTURE"}, blend_panel_{"BLEND"}, io_panel_{"TUNE / INPUT"};
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GraupelAudioProcessorEditor)
 };

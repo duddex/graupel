@@ -334,9 +334,9 @@ const juce::StringArray kModeNames{"Grain", "Stretch", "Loop", "Spectral"};
 const juce::Colour kModeAccents[] = {juce::Colour(0xff6fd3e0), juce::Colour(0xffa995ff),
                                      juce::Colour(0xfff2b65e), juce::Colour(0xffef84b6)};
 
-constexpr int kWidth = 920;
-constexpr int kHeight = 590;
-constexpr int kLeftColumn = 600;
+constexpr int kWidth = 780;
+constexpr int kHeight = 604;
+constexpr int kBlendWidth = 482;
 }  // namespace
 
 GraupelAudioProcessorEditor::GraupelAudioProcessorEditor(GraupelAudioProcessor& processor)
@@ -345,28 +345,24 @@ GraupelAudioProcessorEditor::GraupelAudioProcessorEditor(GraupelAudioProcessor& 
   setOpaque(true);
 
   core_knobs_.add(&addKnob("position", "Position", Format::Percent,
-                           "Where in the Recording Buffer playback reads from."));
-  core_knobs_.add(&addKnob("size", "Size", Format::Percent, "Grain or segment length."));
+                           "How far back in the Recording Buffer playback reads from."));
+  core_knobs_.add(&addKnob("size", "Size", Format::Percent,
+                           "Grain length (Grain), window size (Stretch, Loop), spectral warp (Spectral)."));
   core_knobs_.add(&addKnob("pitch", "Pitch", Format::Semitones, "Transposition in semitones."));
-  core_knobs_.add(&addKnob("density", "Density", Format::Percent, "Grain generation rate."));
-  core_knobs_.add(&addKnob("texture", "Texture", Format::Percent, "Grain envelope / diffusion."));
+  core_knobs_.add(&addKnob("density", "Density", Format::Percent,
+                           "Grain rate (Grain), diffusion (Stretch, Loop), refresh rate (Spectral)."));
+  core_knobs_.add(&addKnob("texture", "Texture", Format::Percent,
+                           "Grain envelope (Grain), filter (Stretch, Loop), quantization (Spectral)."));
 
-  blend_knobs_.add(&addKnob("dryWet", "Dry / Wet", Format::Percent));
-  blend_knobs_.add(&addKnob("stereoSpread", "Spread", Format::Percent, "Stereo spread"));
-  blend_knobs_.add(&addKnob("feedback", "Feedback", Format::Percent));
-  blend_knobs_.add(&addKnob("reverb", "Reverb", Format::Percent, "Reverberation"));
+  blend_knobs_.add(&addKnob("dryWet", "Dry / Wet", Format::Percent, "Balance between input and effect."));
+  blend_knobs_.add(&addKnob("stereoSpread", "Spread", Format::Percent,
+                            "Random stereo placement of grains (Grain mode)."));
+  blend_knobs_.add(&addKnob("feedback", "Feedback", Format::Percent,
+                            "Amount of output fed back into the Recording Buffer."));
+  blend_knobs_.add(&addKnob("reverb", "Reverb", Format::Percent, "Reverberation amount and length."));
 
-  io_knobs_.add(&addKnob("pitchFine", "Fine", Format::Fine, "Pitch fine drift"));
-  io_knobs_.add(&addKnob("inputGain", "Input", Format::Decibels, "Input gain"));
-
-  granular_knobs_.add(&addKnob("granularOverlap", "Overlap", Format::Percent));
-  granular_knobs_.add(&addKnob("granularWindow", "Window", Format::Percent, "Window shape"));
-  granular_knobs_.add(&addKnob("granularSpread", "Grain Spread", Format::Percent));
-
-  spectral_knobs_.add(&addKnob("spectralQuantization", "Quantize", Format::Percent, "Quantization"));
-  spectral_knobs_.add(&addKnob("spectralRefresh", "Refresh", Format::Percent, "Refresh rate"));
-  spectral_knobs_.add(&addKnob("spectralPhase", "Phase Rand", Format::Percent, "Phase randomization"));
-  spectral_knobs_.add(&addKnob("spectralWarp", "Warp", Format::Percent));
+  io_knobs_.add(&addKnob("pitchFine", "Fine", Format::Fine, "Fine pitch offset, added to Pitch."));
+  io_knobs_.add(&addKnob("inputGain", "Input", Format::Decibels, "Gain applied before capture."));
 
   for (int i = 0; i < kModeNames.size(); ++i) {
     auto* button = mode_buttons_.add(new juce::TextButton(kModeNames[i].toUpperCase()));
@@ -437,9 +433,6 @@ void GraupelAudioProcessorEditor::setMode(int mode) {
   look_and_feel_.setAccent(kModeAccents[mode_]);
   for (int i = 0; i < mode_buttons_.size(); ++i)
     mode_buttons_[i]->setToggleState(i == mode_, juce::dontSendNotification);
-  for (auto* knob : granular_knobs_) knob->setVisible(mode_ == 0);
-  for (auto* knob : spectral_knobs_) knob->setVisible(mode_ == 3);
-  extras_panel_.title = kModeNames[mode_].toUpperCase() + " EXTRAS";
   repaint();
 }
 
@@ -502,15 +495,7 @@ void GraupelAudioProcessorEditor::paint(juce::Graphics& g) {
   drawPanel(g, core_panel_);
   drawPanel(g, blend_panel_);
   drawPanel(g, io_panel_);
-  drawPanel(g, extras_panel_);
   drawPanel(g, {{}, footer_});
-
-  if (mode_ == 1 || mode_ == 2) {
-    g.setColour(palette::textFaint);
-    g.setFont(juce::Font(juce::FontOptions{}.withHeight(13.0f)));
-    g.drawFittedText(kModeNames[mode_] + " mode has no\nadditional controls.",
-                     extras_message_area_, juce::Justification::centred, 2);
-  }
 
   // Buffer status pill.
   const auto pill = status_area_.toFloat();
@@ -564,7 +549,7 @@ void GraupelAudioProcessorEditor::resized() {
   area.removeFromTop(12);
 
   auto modeBar = area.removeFromTop(40);
-  mode_bar_ = modeBar.removeFromLeft(kLeftColumn);
+  mode_bar_ = modeBar.removeFromLeft(kBlendWidth);
   modeBar.removeFromLeft(12);
   status_area_ = modeBar;
   {
@@ -577,36 +562,16 @@ void GraupelAudioProcessorEditor::resized() {
   footer_ = area.removeFromBottom(66);
   area.removeFromBottom(12);
 
-  auto left = area.removeFromLeft(kLeftColumn);
+  core_panel_.bounds = area.removeFromTop(210);
+  area.removeFromTop(12);
+  blend_panel_.bounds = area.removeFromLeft(kBlendWidth);
   area.removeFromLeft(12);
-  extras_panel_.bounds = area;
-
-  core_panel_.bounds = left.removeFromTop(196);
-  left.removeFromTop(12);
-  blend_panel_.bounds = left.removeFromLeft(396);
-  left.removeFromLeft(12);
-  io_panel_.bounds = left;
+  io_panel_.bounds = area;
 
   auto content = [](const Panel& panel) { return panel.bounds.withTrimmedTop(32).reduced(10, 10); };
   layoutKnobRow(content(core_panel_), core_knobs_);
   layoutKnobRow(content(blend_panel_), blend_knobs_);
   layoutKnobRow(content(io_panel_), io_knobs_);
-
-  extras_message_area_ = content(extras_panel_);
-  for (const auto* group : {&granular_knobs_, &spectral_knobs_}) {
-    const int rows = (group->size() + 1) / 2;
-    auto grid = extras_message_area_;
-    const int rowHeight = grid.getHeight() / rows;
-    for (int row = 0; row < rows; ++row) {
-      auto line = grid.removeFromTop(rowHeight).reduced(0, 6);
-      const int first = row * 2;
-      const int count = juce::jmin(2, group->size() - first);
-      const int cell = line.getWidth() / 2;
-      if (count == 1) line = line.withSizeKeepingCentre(cell, line.getHeight());
-      for (int i = 0; i < count; ++i)
-        (*group)[first + i]->setBounds(line.removeFromLeft(cell).reduced(4, 0));
-    }
-  }
 
   auto footer = footer_.reduced(14, 12);
   freeze_.setBounds(footer.removeFromLeft(150));
