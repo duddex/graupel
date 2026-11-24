@@ -1,0 +1,59 @@
+name: Build and validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Cache JUCE and CMake dependencies
+        uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build Release
+        run: cmake --build build --config Release --target Graupel_VST3 Graupel_Standalone GraupelDspTests render_wav -- /m:2
+
+      - name: Run DSP tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Download pluginval
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip -OutFile pluginval.zip
+          Expand-Archive -Path pluginval.zip -DestinationPath pluginval-bin -Force
+
+      - name: Validate VST3
+        shell: pwsh
+        run: Start-Process -FilePath .\pluginval-bin\pluginval.exe -ArgumentList '--strictness-level','8','--skip-gui-tests','--validate','build\Graupel_artefacts\Release\VST3\Graupel.vst3' -Wait -NoNewWindow
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ('${{ github.ref_type }}' -eq 'tag') { $name = $tag } else { $name = 'dev-${{ github.sha }}'.Substring(0, 11) }
+          $stage = Join-Path $PWD 'package'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item build\Graupel_artefacts\Release\VST3\Graupel.vst3 $stage -Recurse
+          Copy-Item build\Graupel_artefacts\Release\Standalone\Graupel.exe $stage
+          Copy-Item README.md, LICENSE, NOTICE, GLOSSARY.md $stage
+          Copy-Item licenses, docs $stage -Recurse
+          Compress-Archive -Path "$stage\*" -DestinationPath "$name.zip" -Force
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Graupel-${{ github.sha }}
+          path: '*.zip'

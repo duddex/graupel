@@ -1,0 +1,12 @@
+Graupel code is licensed as a whole under the GNU Affero General Public
+License, version 3.
+
+The ported Clouds DSP is Copyright 2014 Emilie Gillet and is available under
+the MIT license; see licenses/Clouds-MIT.txt and the read-only eurorack
+submodule.
+
+JUCE is used under its AGPLv3 option. JUCE is Copyright ROLI Ltd. and its
+contributors; see the JUCE source distribution for its complete notice.
+
+Graupel is unofficial project; “Mutable Instruments” is a trademark of its
+owner; nothing is affiliated or endorsed.

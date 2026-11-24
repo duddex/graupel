@@ -1,1 +1,19 @@
+# Build output
 build/
+build-*/
+out/
+package/
+
+# Visual Studio and local IDE files
+.vs/
+*.user
+*.suo
+
+# Local validation tools
+pluginval.exe
+pluginval.zip
+pluginval-bin/
+
+# Packaging and temporary files
+*.zip
+*.log
