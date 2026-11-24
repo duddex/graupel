@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -29,31 +32,47 @@ jobs:
       - name: Run DSP tests
         run: ctest --test-dir build -C Release --output-on-failure
 
-      - name: Download pluginval
+      - name: Validate VST3 (pluginval)
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip -OutFile pluginval.zip
           Expand-Archive -Path pluginval.zip -DestinationPath pluginval-bin -Force
-
-      - name: Validate VST3
-        shell: pwsh
-        run: Start-Process -FilePath .\pluginval-bin\pluginval.exe -ArgumentList '--strictness-level','8','--skip-gui-tests','--validate','build\Graupel_artefacts\Release\VST3\Graupel.vst3' -Wait -NoNewWindow
+          # pluginval.exe is a GUI-subsystem program: it must be started with -Wait to get its exit code.
+          $plugin = "$PWD\build\Graupel_artefacts\Release\VST3\Graupel.vst3"
+          $run = Start-Process "$PWD\pluginval-bin\pluginval.exe" `
+            -ArgumentList '--strictness-level','8','--skip-gui-tests','--validate',"`"$plugin`"" `
+            -Wait -PassThru -NoNewWindow `
+            -RedirectStandardOutput pluginval.log -RedirectStandardError pluginval.err.log
+          Get-Content pluginval.log, pluginval.err.log -ErrorAction SilentlyContinue | Select-Object -Last 60
+          if ($run.ExitCode -ne 0) { exit 1 }
 
       - name: Package
         shell: pwsh
         run: |
-          $tag = '${{ github.ref_name }}'
-          if ('${{ github.ref_type }}' -eq 'tag') { $name = $tag } else { $name = 'dev-${{ github.sha }}'.Substring(0, 11) }
           $stage = Join-Path $PWD 'package'
           New-Item -ItemType Directory -Force $stage | Out-Null
           Copy-Item build\Graupel_artefacts\Release\VST3\Graupel.vst3 $stage -Recurse
           Copy-Item build\Graupel_artefacts\Release\Standalone\Graupel.exe $stage
           Copy-Item README.md, LICENSE, NOTICE $stage
           Copy-Item licenses $stage -Recurse
-          Compress-Archive -Path "$stage\*" -DestinationPath "$name.zip" -Force
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $ver = $env:GITHUB_REF_NAME
+          } else {
+            $ver = "dev-$($env:GITHUB_SHA.Substring(0,7))"
+          }
+          $asset = "Graupel-$ver-Windows.zip"
+          Compress-Archive -Path "$stage\*" -DestinationPath $asset -Force
+          "ASSET=$asset" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Upload package
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Graupel-${{ github.sha }}
-          path: '*.zip'
+          name: Graupel-Windows
+          path: ${{ env.ASSET }}
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create $env:GITHUB_REF_NAME "$env:ASSET" --title "Graupel $env:GITHUB_REF_NAME" --generate-notes
